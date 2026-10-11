@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Zahlenstrahl bis 10000</title>
+<style>
+  :root{
+    --g:#178a3c; --r:#d42a2a; --b:#1d5fd6;
+    --ink:#1d2330; --muted:#6b7280; --line:#d5d9e0; --bg:#f5f6f8; --card:#ffffff;
+    --ok:#e2f4e7; --bad:#fde6e6;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,"Segoe UI",Arial,sans-serif;line-height:1.4}
+  main{max-width:1120px;margin:0 auto;padding:20px 16px 40px}
+  h1{font-size:1.6rem;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px 18px;margin-bottom:16px}
+  .pg{color:var(--g);fill:var(--g)} .pr{color:var(--r);fill:var(--r)} .pb{color:var(--b);fill:var(--b)}
+
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .controls label{font-weight:600}
+  input[type=number],.ans{font:inherit;font-size:1.15rem;padding:6px 10px;border:2px solid var(--line);border-radius:8px;width:120px;background:#fff;color:var(--ink)}
+  button{font:inherit;font-weight:600;padding:8px 14px;border-radius:8px;border:2px solid var(--ink);background:#fff;color:var(--ink);cursor:pointer}
+  button.primary{background:var(--ink);color:#fff}
+  button:hover{opacity:.85}
+  .toggle{display:flex;gap:6px;align-items:center;font-weight:500 !important;cursor:pointer}
+
+  .top{display:flex;flex-wrap:wrap;gap:24px;align-items:center;justify-content:space-between}
+  .bignum{font-size:3rem;font-weight:800;letter-spacing:.04em}
+  table.stw{border-collapse:collapse;text-align:center;font-weight:800;font-size:1.4rem}
+  table.stw th{font-size:.9rem;padding:4px 14px;color:#fff}
+  table.stw td{border:2px solid var(--line);padding:4px 14px;min-width:52px}
+  th.g{background:var(--g)} th.r{background:var(--r)} th.b{background:var(--b)}
+
+  .strahl{overflow-x:auto}
+  .strahl svg{display:block;width:100%;min-width:780px;height:auto}
+  .axis{stroke:var(--ink);stroke-width:2.5}
+  .ext{stroke:var(--ink);stroke-width:2.5;stroke-dasharray:4 5}
+  .tick{stroke:var(--ink);stroke-width:1.5}
+  .tl{font-size:12px;font-weight:600}
+  .tl.big{font-size:14px;font-weight:800}
+  .rowtitle{font-size:13px;fill:var(--muted);font-weight:600}
+  .zoombox{fill:#eef0f4;stroke:#9aa1ad;stroke-width:1.2}
+  .conn{stroke:#9aa1ad;stroke-width:1.2;stroke-dasharray:5 4;fill:none}
+  .mk{stroke:var(--ink);stroke-width:2}
+  .mkt{fill:var(--ink)}
+  .mklabel{font-size:18px;font-weight:800}
+  .band-g{fill:var(--g)} .band-r{fill:var(--r)} .band-b{fill:var(--b)}
+  .pill{fill:#fff;stroke-width:2}
+  .ps-g{stroke:var(--g)} .ps-r{stroke:var(--r)} .ps-b{stroke:var(--b)}
+  .pt{font-size:13px;font-weight:800}
+  .arrow{fill:var(--muted)}
+
+  .tasks{display:grid;gap:10px}
+  .trow{display:grid;grid-template-columns:170px auto auto auto auto auto;gap:10px;align-items:center}
+  .trow .name{font-weight:700}
+  .trow .mid{font-size:1.3rem;font-weight:800;min-width:70px;text-align:center}
+  .lt{font-size:1.3rem;color:var(--muted);font-weight:700}
+  .ans.ok{border-color:var(--g);background:var(--ok)}
+  .ans.bad{border-color:var(--r);background:var(--bad)}
+  .btns{display:flex;flex-wrap:wrap;gap:10px;margin-top:14px}
+  #feedback{font-weight:700;margin-top:10px;min-height:1.4em}
+  .legend{display:flex;flex-wrap:wrap;gap:16px;font-weight:700}
+  .legend span{display:inline-flex;gap:6px;align-items:center}
+  .dot{width:14px;height:14px;border-radius:50%;display:inline-block}
+  .hint{color:var(--muted);font-size:.95rem;margin:8px 0 0}
+
+  @media (max-width:640px){
+    .trow{grid-template-columns:auto auto auto auto auto;justify-content:start;gap:6px}
+    .trow .name{grid-column:1/-1}
+    .ans{width:92px}
+    .bignum{font-size:2.3rem}
+  }
+  @media print{
+    body{background:#fff} .controls,.btns,#feedback{display:none}
+    .card{border:none;padding:6px 0}
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>Zahlenstrahl bis 10000</h1>
+  <p class="sub">Finde die Nachbarzahlen, Nachbarzehner, Nachbarhunderter und Nachbartausender.</p>
+
+  <div class="card">
+    <div class="controls">
+      <label for="zahl">Zahl:</label>
+      <input type="number" id="zahl" min="0" max="10000" value="3456">
+      <button class="primary" id="zufall">🎲 Zufallszahl</button>
+      <label class="toggle"><input type="checkbox" id="lupe" checked> Lupe zeigen</label>
+      <label class="toggle"><input type="checkbox" id="markieren"> Nachbarn auf dem Strahl markieren</label>
+    </div>
+    <div class="legend" style="margin-top:12px">
+      <span class="pg"><i class="dot" style="background:var(--g)"></i>Tausender</span>
+      <span class="pr"><i class="dot" style="background:var(--r)"></i>Hunderter</span>
+      <span class="pb"><i class="dot" style="background:var(--b)"></i>Zehner</span>
+      <span class="pg"><i class="dot" style="background:var(--g)"></i>Einer</span>
+    </div>
+  </div>
+
+  <div class="card top">
+    <div class="bignum" id="bignum"></div>
+    <table class="stw" id="stw"></table>
+  </div>
+
+  <div class="card strahl">
+    <svg id="svg" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Zahlenstrahl von 0 bis 10000"></svg>
+  </div>
+
+  <div class="card">
+    <h2 style="margin:0 0 12px;font-size:1.2rem">Deine Aufgabe</h2>
+    <div class="tasks" id="tasks"></div>
+    <div class="btns">
+      <button class="primary" id="pruefen">✔ Prüfen</button>
+      <button id="loesung">Lösung zeigen</button>
+      <button id="leeren">Felder leeren</button>
+    </div>
+    <div id="feedback"></div>
+    <p class="hint">Tipp: Ist die Zahl selbst schon ein Zehner (z. B. 3450), dann sind die Nachbarzehner 3440 und 3460. Das gilt genauso für Hunderter und Tausender.</p>
+  </div>
+</main>
+
+<script>
+const MAX = 10000, L = 30, R = 1010, ROWH = 145;
+const $ = id => document.getElementById(id);
+
+// Stellenwert → Farbklasse: Einer & Tausender grün, Zehner blau, Hunderter rot
+function cls(place){ return place === 1 ? 'pb' : place === 2 ? 'pr' : 'pg'; }
+// Reine Tausender-/Hunderterzahlen: die Endnullen übernehmen die Farbe der letzten Ziffer ≠ 0
+// (6000 ganz grün, 500 ganz rot, 1500 → 1 grün, 500 rot)
+function digitClasses(n){
+  const s = String(n), len = s.length;
+  const classes = [...s].map((d,i) => cls(len-1-i));
+  if (n > 0 && n % 100 === 0){
+    let last = len - 1;
+    while (s[last] === '0') last--;
+    for (let i = last + 1; i < len; i++) classes[i] = classes[last];
+  }
+  return classes;
+}
+function numSvg(n){ const c = digitClasses(n); return [...String(n)].map((d,i)=>`<tspan class="${c[i]}">${d}</tspan>`).join(''); }
+function numHtml(n){ const c = digitClasses(n); return [...String(n)].map((d,i)=>`<span class="${c[i]}">${d}</span>`).join(''); }
+
+function neighbors(n, s){
+  let lo, hi;
+  if (n % s === 0){ lo = n - s; hi = n + s; }
+  else { lo = Math.floor(n/s)*s; hi = lo + s; }
+  return [lo < 0 ? null : lo, hi > MAX ? null : hi];
+}
+const LEVELS = [
+  {key:'e', name:'Nachbarzahlen',   step:1,    c:'g'},
+  {key:'z', name:'Nachbarzehner',   step:10,   c:'b'},
+  {key:'h', name:'Nachbarhunderter',step:100,  c:'r'},
+  {key:'t', name:'Nachbartausender',step:1000, c:'g'},
+];
+
+function getN(){
+  let n = parseInt($('zahl').value, 10);
+  if (isNaN(n)) n = 0;
+  n = Math.max(0, Math.min(MAX, n));
+  return n;
+}
+function seg(n, s){ return Math.min(Math.floor(n/s)*s, MAX - s); }
+
+function render(){
+  const n = getN();
+  const lupe = $('lupe').checked, mark = $('markieren').checked;
+
+  // grosse Zahl + Stellenwerttafel
+  $('bignum').innerHTML = numHtml(n);
+  const s = String(n).padStart(n >= 10000 ? 5 : 4, '0');
+  const heads = n >= 10000 ? [['ZT','g'],['T','g'],['H','r'],['Z','b'],['E','g']] : [['T','g'],['H','r'],['Z','b'],['E','g']];
+  $('stw').innerHTML = '<tr>' + heads.map(h=>`<th class="${h[1]}">${h[0]}</th>`).join('') + '</tr><tr>' +
+    [...s].map((d,i)=>`<td class="${cls(s.length-1-i)}">${d}</td>`).join('') + '</tr>';
+
+  // Zeilen des Zahlenstrahls
+  const rows = [
+    {a:0, b:MAX, small:100, mid:500, big:1000, lab:500, nb:1000, c:'g', title:'Zahlenstrahl von 0 bis 10000'},
+  ];
+  if (lupe){
+    const a1 = seg(n,1000), a2 = seg(n,100), a3 = seg(n,10);
+    rows.push({a:a1, b:a1+1000, small:10, mid:50, big:100, lab:100, nb:100, c:'r', title:`Lupe: ${a1} bis ${a1+1000}`});
+    rows.push({a:a2, b:a2+100,  small:1,  mid:5,  big:10,  lab:10,  nb:10,  c:'b', title:`Lupe: ${a2} bis ${a2+100}`});
+    rows.push({a:a3, b:a3+10,   small:1,  mid:5,  big:10,  lab:1,   nb:1,   c:'g', title:`Lupe: ${a3} bis ${a3+10}`});
+  }
+
+  let out = '';
+  rows.forEach((row, k) => {
+    const top = k*ROWH, y = top + 72;
+    const X = v => L + (v - row.a)/(row.b - row.a)*(R - L);
+
+    out += `<text x="${L}" y="${top+16}" class="rowtitle">${row.title}</text>`;
+
+    // Lupenrahmen + Verbindungslinien zur nächsten Zeile
+    if (k < rows.length - 1){
+      const nx = rows[k+1], x1 = X(nx.a), x2 = X(nx.b), ny = (k+1)*ROWH + 72;
+      out += `<rect x="${x1}" y="${y-16}" width="${x2-x1}" height="32" rx="3" class="zoombox"/>`;
+      out += `<path d="M${x1},${y+16} L${L},${ny-18} M${x2},${y+16} L${R},${ny-18}" class="conn"/>`;
+    }
+
+    // Nachbarn markieren (Band)
+    let nbs = null;
+    if (mark){
+      nbs = neighbors(n, row.nb);
+      const lo = nbs[0] ?? row.a, hi = nbs[1] ?? row.b;
+      const xa = X(Math.max(lo,row.a)), xb = X(Math.min(hi,row.b));
+      out += `<rect x="${xa}" y="${y-6}" width="${Math.max(xb-xa,3)}" height="12" class="band-${row.c}" opacity=".35"/>`;
+    }
+
+    // Achse
+    if (k === 0){
+      out += `<line x1="${L}" y1="${y}" x2="${R+18}" y2="${y}" class="axis"/>`;
+      out += `<polygon points="${R+26},${y} ${R+14},${y-6} ${R+14},${y+6}" class="mkt"/>`;
+    } else {
+      out += `<line x1="${L}" y1="${y}" x2="${R}" y2="${y}" class="axis"/>`;
+      if (row.a > 0) out += `<line x1="${L-22}" y1="${y}" x2="${L}" y2="${y}" class="ext"/>`;
+      out += `<line x1="${R}" y1="${y}" x2="${R+22}" y2="${y}" class="ext"/>`;
+    }
+
+    // Striche und Beschriftung
+    const count = (row.b - row.a)/row.small;
+    for (let i = 0; i <= count; i++){
+      const v = row.a + i*row.small, x = X(v);
+      const isBig = v % row.big === 0, isMid = v % row.mid === 0;
+      const h = isBig ? 13 : isMid ? 9 : 5;
+      out += `<line x1="${x}" y1="${y-h}" x2="${x}" y2="${y+h}" class="tick"/>`;
+      if (v % row.lab === 0){
+        out += `<text x="${x}" y="${y+32}" text-anchor="middle" class="tl ${isBig?'big':''}">${numSvg(v)}</text>`;
+      }
+    }
+
+    // Nachbar-Schilder
+    if (mark && nbs){
+      nbs.forEach((v, side) => {
+        if (v === null) return;
+        const inside = v >= row.a && v <= row.b;
+        const txt = (inside ? '' : (side===0 ? '◀ ' : '')) + numSvg(v) + (inside ? '' : (side===1 ? ' ▶' : ''));
+        const w = String(v).length*9 + (inside ? 18 : 34);
+        let x = inside ? X(v) : (side===0 ? L + w/2 : R - w/2);
+        x = Math.max(L + w/2 - 20, Math.min(R + 20 - w/2, x));
+        if (inside) out += `<circle cx="${X(v)}" cy="${y}" r="6" class="band-${row.c}"/>`;
+        out += `<rect x="${x-w/2}" y="${y+44}" width="${w}" height="24" rx="12" class="pill ps-${row.c}"/>`;
+        out += `<text x="${x}" y="${y+61}" text-anchor="middle" class="pt">${txt}</text>`;
+      });
+    }
+
+    // Markierung der Zahl
+    const xn = X(n), xl = Math.max(L+24, Math.min(R-24, xn));
+    out += `<line x1="${xn}" y1="${y-24}" x2="${xn}" y2="${y+8}" class="mk"/>`;
+    out += `<polygon points="${xn-7},${y-34} ${xn+7},${y-34} ${xn},${y-22}" class="mkt"/>`;
+    out += `<text x="${xl}" y="${y-40}" text-anchor="middle" class="mklabel">${numSvg(n)}</text>`;
+  });
+
+  const H = rows.length*ROWH;
+  const svg = $('svg');
+  svg.setAttribute('viewBox', `0 0 ${R+40} ${H}`);
+  svg.innerHTML = out;
+
+  buildTasks(n);
+}
+
+// Aufgabenbereich
+let lastN = null;
+function buildTasks(n){
+  if (n === lastN) return;
+  lastN = n;
+  $('tasks').innerHTML = LEVELS.map(l => `
+    <div class="trow">
+      <span class="name p${l.c}">${l.name}</span>
+      <input class="ans" id="${l.key}0" inputmode="numeric" aria-label="${l.name} kleiner">
+      <span class="lt">&lt;</span>
+      <span class="mid">${numHtml(n)}</span>
+      <span class="lt">&lt;</span>
+      <input class="ans" id="${l.key}1" inputmode="numeric" aria-label="${l.name} grösser">
+    </div>`).join('');
+  $('feedback').textContent = '';
+}
+function parseAns(s){ s = s.replace(/[\s'’.]/g,''); if (s === '' || s === '-' || s === '–') return null; const v = parseInt(s,10); return isNaN(v) ? NaN : v; }
+
+$('pruefen').onclick = () => {
+  const n = getN(); let right = 0, total = 0;
+  LEVELS.forEach(l => {
+    neighbors(n, l.step).forEach((exp, i) => {
+      const el = $(l.key + i), got = parseAns(el.value);
+      total++;
+      const ok = got === exp;
+      el.classList.toggle('ok', ok); el.classList.toggle('bad', !ok);
+      if (ok) right++;
+    });
+  });
+  $('feedback').textContent = right === total ? `Super! Alle ${total} Felder sind richtig. 🎉`
+    : `${right} von ${total} richtig. Schau dir die roten Felder nochmals an – die Lupe hilft dir!`;
+};
+$('loesung').onclick = () => {
+  const n = getN();
+  LEVELS.forEach(l => neighbors(n, l.step).forEach((v,i) => { const el = $(l.key+i); el.value = v ?? '–'; el.classList.remove('ok','bad'); }));
+  $('markieren').checked = true; render();
+  $('feedback').textContent = 'Die Lösungen sind eingetragen und auf dem Zahlenstrahl markiert.';
+};
+$('leeren').onclick = () => { lastN = null; buildTasks(getN()); };
+$('zufall').onclick = () => {
+  $('zahl').value = 1 + Math.floor(Math.random()*9999);
+  $('markieren').checked = false; render();
+};
+$('zahl').addEventListener('input', render);
+$('lupe').addEventListener('change', render);
+$('markieren').addEventListener('change', render);
+render();
+</script>
+</body>
+</html>
